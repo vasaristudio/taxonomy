@@ -2,6 +2,21 @@
 
 this gem is an active record plugin. think of it as a merger of http://rubygems.org/gems/acts-as-taggable-on and http://rubygems.org/gems/awesome_nested_set because, well it is.  With some glue code and updates to the models.
 
+
+== Setup Rails 3.x
+
+Add to Gemfile:
+
+  gem 'taxonomy'
+
+Run migration:
+
+  rails generate taxonomy:migration
+  rake db:migrate
+
+
+== Usage
+
 to setup plain tags and a treed set of categories
 
   has_taxonomy_on :tags, {:treed => [:categories]}

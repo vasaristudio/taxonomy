@@ -11,12 +11,37 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20111221004133) do
+ActiveRecord::Schema.define(:version => 20111221023928) do
 
   create_table "posts", :force => true do |t|
     t.string   "title"
     t.datetime "created_at"
     t.datetime "updated_at"
   end
+
+  create_table "taggings", :force => true do |t|
+    t.integer  "tag_id"
+    t.integer  "taggable_id"
+    t.string   "taggable_type"
+    t.integer  "tagger_id"
+    t.string   "tagger_type"
+    t.datetime "created_at"
+  end
+
+  add_index "taggings", ["tag_id"], :name => "index_taggings_on_tag_id"
+  add_index "taggings", ["taggable_id", "taggable_type"], :name => "index_taggings_on_taggable_id_and_taggable_type"
+
+  create_table "tags", :force => true do |t|
+    t.integer "parent_id"
+    t.integer "lft"
+    t.integer "rgt"
+    t.string  "name"
+    t.string  "context"
+    t.string  "slug"
+  end
+
+  add_index "tags", ["lft", "rgt"], :name => "index_tags_on_lft_and_rgt"
+  add_index "tags", ["parent_id"], :name => "index_tags_on_parent_id"
+  add_index "tags", ["slug"], :name => "index_tags_on_slug"
 
 end

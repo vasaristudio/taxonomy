@@ -22,6 +22,7 @@ Gem::Specification.new do |s|
 
   s.add_development_dependency "sqlite3", "~> 1.3.0"
   s.add_development_dependency "rspec-rails", ">= 2.7.0"
+  s.add_development_dependency "ammeter", ">= 0.2.1"
   s.add_development_dependency "factory_girl_rails", ">= 1.4.0"
   
 end

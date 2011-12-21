@@ -6,7 +6,7 @@ require 'rspec'
 require 'rspec/core/rake_task'
 
 desc "Run the test suite"
-task :spec => ['spec:setup', 'spec:models', 'spec:cleanup']
+task :spec => ['spec:setup', 'spec:generators', 'spec:models', 'spec:cleanup']
 
 namespace :spec do
   desc "Setup the test environment"
@@ -24,5 +24,11 @@ namespace :spec do
   RSpec::Core::RakeTask.new(:models) do |task|
     taxonomy_root = File.expand_path(File.dirname(__FILE__) + '/..')
     task.pattern = taxonomy_root + '/spec/models/**/*_spec.rb'
+  end
+  
+  desc "Test taxonomy migration generation"
+  RSpec::Core::RakeTask.new(:generators) do |task|
+    taxonomy_root = File.expand_path(File.dirname(__FILE__) + '/..')
+    task.pattern = taxonomy_root + '/spec/generators/**/*_spec.rb'
   end
 end
