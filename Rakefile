@@ -5,6 +5,7 @@ rescue LoadError
   puts 'You must `gem install bundler` and `bundle install` to run rake tasks'
 end
 begin
+  require 'rake/dsl_definition'
   require 'rdoc/task'
 rescue LoadError
   require 'rdoc/rdoc'
@@ -14,7 +15,7 @@ end
 
 RDoc::Task.new(:rdoc) do |rdoc|
   rdoc.rdoc_dir = 'rdoc'
-  rdoc.title    = 'DynamicRoutes'
+  rdoc.title    = 'Taxonomy'
   rdoc.options << '--line-numbers'
   rdoc.rdoc_files.include('README.rdoc')
   rdoc.rdoc_files.include('lib/**/*.rb')

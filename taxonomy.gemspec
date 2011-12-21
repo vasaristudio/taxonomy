@@ -10,25 +10,19 @@ Gem::Specification.new do |s|
   s.version     = Taxonomy::VERSION
   s.authors     = ["Seth Faxon"]
   s.email       = ["seth.faxon@gmail.com"]
-  s.homepage    = "https://github.com/sfaxon/taxonomy"
+  s.homepage    = "https://github.com/marshill/taxonomy"
   s.summary     = "tagging with namespace and tree."
   s.description = "tagging with namespace and tree."
 
-  s.files         = `git ls-files`.split("\n")
-  s.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
-  s.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
-  s.require_paths = ["lib"]
-  
-  s.extra_rdoc_files = [
-    "MIT-LICENSE",
-    "README.rdoc"
-  ]
+  s.files = Dir["{app,config,db,lib}/**/*"] + ["MIT-LICENSE", "Rakefile", "README.rdoc"]
+  s.test_files = Dir["spec/**/*"]
 
-  s.add_dependency "activerecord", ">= 3.0.0"
+  s.add_dependency "rails", ">= 3.0.0"
   # s.add_dependency "rails", ">= 3.1.3"
 
   s.add_development_dependency "sqlite3", "~> 1.3.0"
-  s.add_development_dependency "rspec", ">= 2.0.0"
+  s.add_development_dependency "rspec-rails", ">= 2.7.0"
+  s.add_development_dependency "factory_girl_rails", ">= 1.4.0"
   
 end
 
