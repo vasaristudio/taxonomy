@@ -2,7 +2,7 @@ require File.dirname(__FILE__) + '/../spec_helper'
 
 describe "acts_as_tagger" do
   before(:each) do
-    clean_database!
+    # clean_database!
   end
   
   context "Tagger Method Generation" do

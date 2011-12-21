@@ -2,7 +2,7 @@ require File.dirname(__FILE__) + '/../spec_helper'
 
 describe "Group Helper" do
   before(:each) do
-    clean_database!    
+    # clean_database!
   end
 
   describe "grouped_column_names_for method" do

@@ -2,7 +2,7 @@ require File.dirname(__FILE__) + '/../spec_helper'
 
 describe Tag do
   before(:each) do
-    clean_database!
+    # clean_database!
     @tag = Tag.new
     @user = TaggableModel.create(:name => "Pablo")
   end

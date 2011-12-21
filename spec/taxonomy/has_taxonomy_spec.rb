@@ -2,7 +2,7 @@ require File.dirname(__FILE__) + '/../spec_helper'
 
 describe "Acts As Taxonomy" do
   before(:each) do
-    clean_database!  
+    # clean_database!  
   end
   
   it "should provide a class method 'taggable?' that is false for untaggable models" do
