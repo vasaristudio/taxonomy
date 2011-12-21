@@ -6,7 +6,7 @@ require 'rspec'
 require 'rspec/core/rake_task'
 
 desc "Run the test suite"
-task :spec => ['spec:setup', 'spec:generators', 'spec:models', 'spec:cleanup']
+task :spec => ['spec:setup', 'spec:generators', 'spec:taxonomy', 'spec:models', 'spec:cleanup']
 
 namespace :spec do
   desc "Setup the test environment"
@@ -14,10 +14,11 @@ namespace :spec do
     rails_path = File.expand_path(File.dirname(__FILE__) + '/../spec/dummy')
     system "cd #{rails_path} && RAILS_ENV=test bundle exec rake db:schema:load"
   end
-  
-  desc "Cleanup the test environment"
-  task :cleanup do
-    File.delete(File.expand_path(File.dirname(__FILE__) + '/../spec/dummy/db/test.sqlite3'))
+
+  desc "Test taxonomy legacy"
+  RSpec::Core::RakeTask.new(:taxonomy) do |task|
+    taxonomy_root = File.expand_path(File.dirname(__FILE__) + '/..')
+    task.pattern = taxonomy_root + '/spec/taxonomy/**/*_spec.rb'
   end
   
   desc "Test taxonomy"
@@ -31,4 +32,10 @@ namespace :spec do
     taxonomy_root = File.expand_path(File.dirname(__FILE__) + '/..')
     task.pattern = taxonomy_root + '/spec/generators/**/*_spec.rb'
   end
+
+  desc "Cleanup the test environment"
+  task :cleanup do
+    File.delete(File.expand_path(File.dirname(__FILE__) + '/../spec/dummy/db/test.sqlite3'))
+  end
+
 end
