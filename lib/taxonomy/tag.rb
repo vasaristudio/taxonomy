@@ -1,50 +1,5 @@
-require 'iconv'
-# Mixed into both classes and instances to provide easy access to the column names
-module Col
-  def left_column_name
-    Taxonomy.nested_set_options[:left_column]
-  end
-  
-  def right_column_name
-    Taxonomy.nested_set_options[:right_column]
-  end
-  
-  def parent_column_name
-    Taxonomy.nested_set_options[:parent_column]
-  end
-  
-  def scope_column_name
-    Taxonomy.nested_set_options[:scope]
-  end
-  
-  def quoted_left_column_name
-    return 'lft'
-    connection.quote_column_name(left_column_name)
-  end
-  
-  def quoted_right_column_name
-    return 'rgt'
-    connection.quote_column_name(right_column_name)
-  end
-  
-  def quoted_parent_column_name
-    return 'parent_id'
-    connection.quote_column_name(parent_column_name)
-  end
-  
-  def quoted_scope_column_name
-    return 'context'
-    connection.quote_column_name(scope_column_name)
-  end
-end
-
+require 'iconv' # for slug generation, this should go away
 class Tag < ActiveRecord::Base
-
-
-
-  include Col
-  extend Col
-  
   attr_accessible :name, :context
   attr_accessor :skip_before_destroy
   
@@ -65,7 +20,7 @@ class Tag < ActiveRecord::Base
   belongs_to :parent, :class_name => self.base_class.to_s,
     :foreign_key => Taxonomy.nested_set_options[:parent_column]
   has_many :children, :class_name => self.base_class.to_s,
-    :foreign_key => Taxonomy.nested_set_options[:parent_column], :order => quoted_left_column_name
+    :foreign_key => Taxonomy.nested_set_options[:parent_column], :order => Taxonomy.nested_set_options[:left_column]
                 
   # no assignment to structure fields
   [Taxonomy.nested_set_options[:left_column], Taxonomy.nested_set_options[:right_column]].each do |column|
@@ -82,9 +37,9 @@ class Tag < ActiveRecord::Base
   
   # calling parent_column_name in a where cause makes migrations explode in beta4, probably an AREL bug
   # use :conditions for now
-#  scope :roots, where(parent_column_name => nil).order(quoted_left_column_name)
-  scope :roots, :conditions => {parent_column_name => nil}, :order => quoted_left_column_name
-  scope :leaves, where("#{quoted_right_column_name} - #{quoted_left_column_name} = 1").order(quoted_left_column_name)
+#  scope :roots, where(parent_column_name => nil).order(quote_column_name(Taxonomy.nested_set_options[:left_column]))
+  scope :roots, where(Taxonomy.nested_set_options[:parent_column] => nil).order(Taxonomy.nested_set_options[:left_column])
+  scope :leaves, where("#{Taxonomy.nested_set_options[:right_column]} - #{Taxonomy.nested_set_options[:left_column]} = 1").order(Taxonomy.nested_set_options[:left_column])
   
   ### TAG SCOPES:
   
@@ -139,19 +94,19 @@ class Tag < ActiveRecord::Base
   
   def self.left_and_rights_valid?
     self.base_class.joins("LEFT OUTER JOIN #{quoted_table_name} AS parent ON " +
-        "#{quoted_table_name}.#{quoted_parent_column_name} = parent.#{primary_key}").where(
-        "#{quoted_table_name}.#{quoted_left_column_name} IS NULL OR " +
-        "#{quoted_table_name}.#{quoted_right_column_name} IS NULL OR " +
-        "#{quoted_table_name}.#{quoted_left_column_name} >= " +
-          "#{quoted_table_name}.#{quoted_right_column_name} OR " +
-        "(#{quoted_table_name}.#{quoted_parent_column_name} IS NOT NULL AND " +
-          "(#{quoted_table_name}.#{quoted_left_column_name} <= parent.#{quoted_left_column_name} OR " +
-          "#{quoted_table_name}.#{quoted_right_column_name} >= parent.#{quoted_right_column_name}))"
+        "#{quoted_table_name}.#{connection.quote_column_name(Taxonomy.nested_set_options[:parent_column])} = parent.#{primary_key}").where(
+        "#{quoted_table_name}.#{connection.quote_column_name(Taxonomy.nested_set_options[:left_column])} IS NULL OR " +
+        "#{quoted_table_name}.#{connection.quote_column_name(Taxonomy.nested_set_options[:right_column])} IS NULL OR " +
+        "#{quoted_table_name}.#{connection.quote_column_name(Taxonomy.nested_set_options[:left_column])} >= " +
+          "#{quoted_table_name}.#{connection.quote_column_name(Taxonomy.nested_set_options[:right_column])} OR " +
+        "(#{quoted_table_name}.#{connection.quote_column_name(Taxonomy.nested_set_options[:parent_column])} IS NOT NULL AND " +
+          "(#{quoted_table_name}.#{connection.quote_column_name(Taxonomy.nested_set_options[:left_column])} <= parent.#{connection.quote_column_name(Taxonomy.nested_set_options[:left_column])} OR " +
+          "#{quoted_table_name}.#{connection.quote_column_name(Taxonomy.nested_set_options[:right_column])} >= parent.#{connection.quote_column_name(Taxonomy.nested_set_options[:right_column])}))"
     ).count == 0
   end
   
   def self.no_duplicates_for_columns?
-    [quoted_left_column_name, quoted_right_column_name].all? do |column|
+    [connection.quote_column_name(Taxonomy.nested_set_options[:left_column]), connection.quote_column_name(Taxonomy.nested_set_options[:right_column])].all? do |column|
       # No duplicates
       self.base_class.select("#{column}, COUNT(#{column})").group("#{column} HAVING COUNT(#{column}) > 1").first.nil?
     end
@@ -186,14 +141,14 @@ class Tag < ActiveRecord::Base
       # set left
       node[Taxonomy.nested_set_options[:left_column]] = indices[scope.call(node)] += 1
       # find
-      find(:all, :conditions => ["#{quoted_parent_column_name} = ? #{scope.call(node)}", node], :order => "#{quoted_left_column_name}, #{quoted_right_column_name}, id").each{|n| set_left_and_rights.call(n) }
+      find(:all, :conditions => ["#{connection.quote_column_name(Taxonomy.nested_set_options[:parent_column])} = ? #{scope.call(node)}", node], :order => "#{connection.quote_column_name(Taxonomy.nested_set_options[:left_column])}, #{connection.quote_column_name(Taxonomy.nested_set_options[:right_column])}, id").each{|n| set_left_and_rights.call(n) }
       # set right
       node[Taxonomy.nested_set_options[:right_column]] = indices[scope.call(node)] += 1    
       node.save!    
     end
                         
     # Find root node(s)
-    root_nodes = find(:all, :conditions => "#{quoted_parent_column_name} IS NULL", :order => "#{quoted_left_column_name}, #{quoted_right_column_name}, id").each do |root_node|
+    root_nodes = find(:all, :conditions => "#{connection.quote_column_name(Taxonomy.nested_set_options[:parent_column])} IS NULL", :order => "#{connection.quote_column_name(Taxonomy.nested_set_options[:left_column])}, #{connection.quote_column_name(Taxonomy.nested_set_options[:right_column])}, id").each do |root_node|
       # setup index for this scope
       indices[scope.call(root_node)] ||= 0
       set_left_and_rights.call(root_node)
@@ -253,13 +208,13 @@ class Tag < ActiveRecord::Base
   # Returns the array of all parents and self
   def self_and_ancestors
     self.reload
-    nested_set_scope.where("#{self.class.quoted_table_name}.#{quoted_left_column_name} <= ? AND #{self.class.quoted_table_name}.#{quoted_right_column_name} >= ?", left, right)
+    nested_set_scope.where("#{self.class.quoted_table_name}.#{connection.quote_column_name(Taxonomy.nested_set_options[:left_column])} <= ? AND #{self.class.quoted_table_name}.#{connection.quote_column_name(Taxonomy.nested_set_options[:right_column])} >= ?", left, right)
   end
   
   # Returns a set of itself and all of its nested children
   def self_and_descendants
     self.reload
-    nested_set_scope.where("#{self.class.quoted_table_name}.#{quoted_left_column_name} >= ? AND #{self.class.quoted_table_name}.#{quoted_right_column_name} <= ?", left, right)
+    nested_set_scope.where("#{self.class.quoted_table_name}.#{connection.quote_column_name(Taxonomy.nested_set_options[:left_column])} >= ? AND #{self.class.quoted_table_name}.#{connection.quote_column_name(Taxonomy.nested_set_options[:right_column])} <= ?", left, right)
   end
   
   # Returns the scope of all children of the parent, including self
@@ -277,7 +232,7 @@ class Tag < ActiveRecord::Base
   
   # Returns a set of all of its nested children which do not have children  
   def leaves
-    descendants.where "#{self.class.quoted_table_name}.#{quoted_right_column_name} - #{self.class.quoted_table_name}.#{quoted_left_column_name} = 1"
+    descendants.where "#{self.class.quoted_table_name}.#{connection.quote_column_name(Taxonomy.nested_set_options[:right_column])} - #{self.class.quoted_table_name}.#{connection.quote_column_name(Taxonomy.nested_set_options[:left_column])} = 1"
   end
 
   # Returns a set of all of its children and nested children
@@ -302,13 +257,13 @@ class Tag < ActiveRecord::Base
   
   # Find the first sibling to the left
   def left_sibling
-    siblings.where("#{self.class.quoted_table_name}.#{quoted_left_column_name} < ?", left).order(
-      "#{self.class.quoted_table_name}.#{quoted_left_column_name} DESC").first
+    siblings.where("#{self.class.quoted_table_name}.#{connection.quote_column_name(Taxonomy.nested_set_options[:left_column])} < ?", left).order(
+      "#{self.class.quoted_table_name}.#{connection.quote_column_name(Taxonomy.nested_set_options[:left_column])} DESC").first
   end
 
   # Find the first sibling to the right
   def right_sibling
-    siblings.where("#{self.class.quoted_table_name}.#{quoted_left_column_name} > ?", left).first
+    siblings.where("#{self.class.quoted_table_name}.#{connection.quote_column_name(Taxonomy.nested_set_options[:left_column])} > ?", left).first
   end
   
   # Move the node to the left of another node (you can pass id only)
@@ -408,15 +363,15 @@ protected
   
   # reload left, right, and parent
   def reload_nested_set
-    reload(:select => "#{quoted_left_column_name}, " +
-      "#{quoted_right_column_name}, #{quoted_parent_column_name}")
+    reload(:select => "#{connection.quote_column_name(Taxonomy.nested_set_options[:left_column])}, " +
+      "#{connection.quote_column_name(Taxonomy.nested_set_options[:right_column])}, #{connection.quote_column_name(Taxonomy.nested_set_options[:parent_column])}")
   end
   
   # All nested set queries should use this nested_set_scope, which performs finds on
   # the base ActiveRecord class, using the :scope declared in the acts_as_nested_set
   # declaration.
   def nested_set_scope
-    self.class.base_class.scoped.order(quoted_left_column_name) # options
+    self.class.base_class.scoped.order(connection.quote_column_name(Taxonomy.nested_set_options[:left_column])) # options
   end
   
   # Prunes a branch off of the tree, shifting all of the elements on the right
@@ -432,7 +387,7 @@ protected
         end
       else
         nested_set_scope.delete_all(
-          ["#{quoted_left_column_name} > ? AND #{quoted_right_column_name} < ?",
+          ["#{connection.quote_column_name(Taxonomy.nested_set_options[:left_column])} > ? AND #{connection.quote_column_name(Taxonomy.nested_set_options[:right_column])} < ?",
             left, right]
         )
       end
@@ -440,12 +395,12 @@ protected
       # update lefts and rights for remaining nodes
       diff = right - left + 1
       nested_set_scope.update_all(
-        ["#{quoted_left_column_name} = (#{quoted_left_column_name} - ?)", diff],
-        ["#{quoted_left_column_name} > ?", right]
+        ["#{connection.quote_column_name(Taxonomy.nested_set_options[:left_column])} = (#{connection.quote_column_name(Taxonomy.nested_set_options[:left_column])} - ?)", diff],
+        ["#{connection.quote_column_name(Taxonomy.nested_set_options[:left_column])} > ?", right]
       )
       nested_set_scope.update_all(
-        ["#{quoted_right_column_name} = (#{quoted_right_column_name} - ?)", diff],
-        ["#{quoted_right_column_name} > ?", right]
+        ["#{connection.quote_column_name(Taxonomy.nested_set_options[:right_column])} = (#{connection.quote_column_name(Taxonomy.nested_set_options[:right_column])} - ?)", diff],
+        ["#{connection.quote_column_name(Taxonomy.nested_set_options[:right_column])} > ?", right]
       )
       
       # Don't allow multiple calls to destroy to corrupt the set
@@ -498,21 +453,21 @@ protected
       end
       
       self.class.base_class.update_all([
-        "#{quoted_left_column_name} = CASE " +
-          "WHEN #{quoted_left_column_name} BETWEEN :a AND :b " +
-            "THEN #{quoted_left_column_name} + :d - :b " +
-          "WHEN #{quoted_left_column_name} BETWEEN :c AND :d " +
-            "THEN #{quoted_left_column_name} + :a - :c " +
-          "ELSE #{quoted_left_column_name} END, " +
-        "#{quoted_right_column_name} = CASE " +
-          "WHEN #{quoted_right_column_name} BETWEEN :a AND :b " +
-            "THEN #{quoted_right_column_name} + :d - :b " +
-          "WHEN #{quoted_right_column_name} BETWEEN :c AND :d " +
-            "THEN #{quoted_right_column_name} + :a - :c " +
-          "ELSE #{quoted_right_column_name} END, " +
-        "#{quoted_parent_column_name} = CASE " +
+        "#{connection.quote_column_name(Taxonomy.nested_set_options[:left_column])} = CASE " +
+          "WHEN #{connection.quote_column_name(Taxonomy.nested_set_options[:left_column])} BETWEEN :a AND :b " +
+            "THEN #{connection.quote_column_name(Taxonomy.nested_set_options[:left_column])} + :d - :b " +
+          "WHEN #{connection.quote_column_name(Taxonomy.nested_set_options[:left_column])} BETWEEN :c AND :d " +
+            "THEN #{connection.quote_column_name(Taxonomy.nested_set_options[:left_column])} + :a - :c " +
+          "ELSE #{connection.quote_column_name(Taxonomy.nested_set_options[:left_column])} END, " +
+        "#{connection.quote_column_name(Taxonomy.nested_set_options[:right_column])} = CASE " +
+          "WHEN #{connection.quote_column_name(Taxonomy.nested_set_options[:right_column])} BETWEEN :a AND :b " +
+            "THEN #{connection.quote_column_name(Taxonomy.nested_set_options[:right_column])} + :d - :b " +
+          "WHEN #{connection.quote_column_name(Taxonomy.nested_set_options[:right_column])} BETWEEN :c AND :d " +
+            "THEN #{connection.quote_column_name(Taxonomy.nested_set_options[:right_column])} + :a - :c " +
+          "ELSE #{connection.quote_column_name(Taxonomy.nested_set_options[:right_column])} END, " +
+        "#{connection.quote_column_name(Taxonomy.nested_set_options[:parent_column])} = CASE " +
           "WHEN #{self.class.base_class.primary_key} = :id THEN :new_parent " +
-          "ELSE #{quoted_parent_column_name} END",
+          "ELSE #{connection.quote_column_name(Taxonomy.nested_set_options[:parent_column])} END",
         {:a => a, :b => b, :c => c, :d => d, :id => self.id, :new_parent => new_parent}
       ], nested_set_scope.where_values)
     end
