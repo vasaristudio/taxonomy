@@ -197,17 +197,17 @@ describe "Acts As Taxonomy" do
   describe 'Tagging Contexts' do
     it 'should eliminate duplicate tagging contexts ' do
       TaggableModel.has_taxonomy_on(:skills, :skills)
-      TaggableModel.tag_types.freq[:skills].should_not == 3
+      TaggableModel.tag_types.count("skills").should == 1
     end
 
     it "should not contain embedded/nested arrays" do
       TaggableModel.has_taxonomy_on([:array], [:array])
-      TaggableModel.tag_types.freq[[:array]].should == 0
+      TaggableModel.tag_types.count([:array]).should == 0
     end
 
     it "should _flatten_ the content of arrays" do
       TaggableModel.has_taxonomy_on([:array], [:array])
-      TaggableModel.tag_types.freq["array"].should == 1
+      TaggableModel.tag_types.count("array").should == 1
     end
 
     it "should not raise an error when passed nil" do
