@@ -333,7 +333,7 @@ protected
   end
   
   def strip_name
-    self.name.strip!
+    self.name.strip! if self.name.present?
   end
   
   def without_self(s)
