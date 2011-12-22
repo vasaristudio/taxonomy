@@ -11,7 +11,7 @@ describe "Group Helper" do
     end
 
     it "should return all column names joined for Tag GROUP clause" do
-      @taggable.grouped_column_names_for(Tag).should == "tags.id, tags.parent_id, tags.lft, tags.rgt, tags.context, tags.name"
+      @taggable.grouped_column_names_for(Tag).should == "tags.id, tags.parent_id, tags.lft, tags.rgt, tags.name, tags.context, tags.slug"
     end
 
     it "should return all column names joined for TaggableModel GROUP clause" do
