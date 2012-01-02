@@ -68,6 +68,12 @@ class Tag < ActiveRecord::Base
     ret
   end
   
+  def self.find_context_with_name!(context, name)
+    ret = self.where(:context => context, :name => name).first
+    raise ActiveRecord::RecordNotFound if ret.nil?
+    ret
+  end
+  
   def self.find_or_create_with_like_by_name(context, name)
     named_like(context, name).first || create(:context => "#{context.singularize.to_s}", :name => name)
   end
