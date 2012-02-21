@@ -2,7 +2,7 @@
 ENV["RAILS_ENV"] ||= 'test'
 # require File.expand_path("../../config/environment", __FILE__)
 
-require 'ruby-debug'
+#require 'ruby-debug'
 require File.expand_path(File.dirname(__FILE__) + "/dummy/config/environment", __FILE__)
 require 'rspec/rails'
 require 'factory_girl_rails'
@@ -12,7 +12,7 @@ require 'ammeter/init'
 # in spec/support/ and its subdirectories.
 # Dir[Rails.root.join("spec/support/**/*.rb")].each {|f| require f}
 Dir[File.dirname(__FILE__) + "/support/**/*.rb"].each {|f| require f}
-Dir[File.dirname(__FILE__) + "/factories/**/*.rb"].each {|f| require f}
+#Dir[File.dirname(__FILE__) + "/factories/**/*.rb"].each {|f| require f}
 
 RSpec.configure do |config|
   # == Mock Framework

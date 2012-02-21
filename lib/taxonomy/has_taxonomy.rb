@@ -108,7 +108,7 @@ module ActiveRecord
             
           end
           if respond_to?(:tag_types)
-            self.tag_types += args.uniq
+            self.tag_types = (self.tag_types+args).uniq
             self.treed_tag_types = treed_args.uniq
           else
             class_eval do
