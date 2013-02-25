@@ -1,4 +1,3 @@
-require 'iconv' # for slug generation, this should go away
 class Tag < ActiveRecord::Base
   attr_accessible :name, :context
   attr_accessor :skip_before_destroy
@@ -327,7 +326,7 @@ protected
 
   def permalize
     if (changed.include?(self.name) && !changed.include?(:slug)) || self.slug.nil? || self.slug.blank?
-      s = Iconv.iconv('ascii//ignore//translit', 'utf-8', self.name).to_s
+      s = self.name.encode("UTF-8", :invalid => :replace, :undef => :replace, :replace => "?")
       s.gsub!(/\'/, '')   # remove '
       s.gsub!(/\W+/, ' ') # all non-word chars to spaces
       s.strip!            # ohh la la
